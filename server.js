@@ -26,36 +26,62 @@ const wss = new WebSocket.Server({ server });
 
 let clients = new Map();
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
     const clientId = Math.random().toString(36).substr(2, 9);
     
-    ws.on('message', (message) => {
-        const data = JSON.parse(message.toString());
+    // Capture IP Address (handling proxy headers if present)
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const cleanIp = ip.replace('::ffff:', ''); // Clean IPv6 prefix for local IPv4
 
-        if (data.type === 'register') {
-            clients.set(clientId, { ws, info: data.info, role: 'display' });
-            broadcastClientList();
-        } else if (data.type === 'control') {
-            if (data.targetId === 'all') {
-                wss.clients.forEach(client => {
-                    if (client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify(data.payload));
+    setTimeout(() => {
+        sendClientListTo(ws);
+    }, 100);
+
+    ws.on('message', (message) => {
+        try {
+            const data = JSON.parse(message.toString());
+
+            if (data.type === 'register') {
+                // Add IP to the client info
+                const clientInfo = { ...data.info, ip: cleanIp };
+                clients.set(clientId, { ws, info: clientInfo, role: 'display' });
+                broadcastClientList();
+            } else if (data.type === 'control') {
+                if (data.targetId === 'all') {
+                    wss.clients.forEach(client => {
+                        if (client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify(data.payload));
+                        }
+                    });
+                } else {
+                    const target = clients.get(data.targetId);
+                    if (target && target.ws.readyState === WebSocket.OPEN) {
+                        target.ws.send(JSON.stringify(data.payload));
                     }
-                });
-            } else {
-                const target = clients.get(data.targetId);
-                if (target && target.ws.readyState === WebSocket.OPEN) {
-                    target.ws.send(JSON.stringify(data.payload));
                 }
             }
+        } catch (e) {
+            console.error("Error processing message:", e);
         }
     });
 
     ws.on('close', () => {
-        clients.delete(clientId);
-        broadcastClientList();
+        if (clients.has(clientId)) {
+            clients.delete(clientId);
+            broadcastClientList();
+        }
     });
 });
+
+function sendClientListTo(ws) {
+    if (ws.readyState === WebSocket.OPEN) {
+        const list = Array.from(clients.entries()).map(([id, client]) => ({
+            id,
+            info: client.info
+        }));
+        ws.send(JSON.stringify({ type: 'clientList', list }));
+    }
+}
 
 function broadcastClientList() {
     const list = Array.from(clients.entries()).map(([id, client]) => ({
@@ -63,9 +89,10 @@ function broadcastClientList() {
         info: client.info
     }));
     
+    const message = JSON.stringify({ type: 'clientList', list });
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'clientList', list }));
+            client.send(message);
         }
     });
 }

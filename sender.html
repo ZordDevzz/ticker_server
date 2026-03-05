@@ -7,47 +7,71 @@
     <style>
         body { font-family: 'Microsoft JhengHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; display: flex; justify-content: center; }
         .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 600px; position: relative; }
-        h2 { margin-top: 0; color: #333; text-align: center; }
-        .lang-switch { position: absolute; top: 10px; right: 20px; }
-        .lang-switch select { padding: 5px; border-radius: 4px; border: 1px solid #ddd; cursor: pointer; }
-        .control-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.3rem; font-weight: 600; color: #555; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        h2 { margin-top: 0; color: #333; text-align: center; margin-bottom: 20px; }
+        
+        /* Language & Mode Switcher */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .tabs { display: flex; background: #eee; padding: 4px; border-radius: 8px; gap: 4px; }
+        .tab { padding: 8px 16px; cursor: pointer; border-radius: 6px; font-size: 0.9rem; font-weight: 600; color: #666; transition: all 0.2s; }
+        .tab.active { background: white; color: #007bff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .lang-switch select { padding: 6px; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; font-weight: 500; }
+
+        .control-group { margin-bottom: 1.2rem; }
+        label { display: block; margin-bottom: 0.4rem; font-weight: 600; color: #555; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        input[type="range"] { padding: 0; }
+        
         .row { display: flex; gap: 1rem; margin-bottom: 1rem; }
         .row > div { flex: 1; }
-        .client-list { border: 1px solid #eee; padding: 10px; border-radius: 6px; max-height: 120px; overflow-y: auto; margin-bottom: 1rem; background: #fff; }
-        .client-item { padding: 8px 10px; cursor: pointer; border-radius: 4px; margin-bottom: 4px; border-bottom: 1px solid #f9f9f9; font-size: 0.85rem; }
+        
+        .client-list { border: 1px solid #eee; padding: 10px; border-radius: 8px; max-height: 120px; overflow-y: auto; margin-bottom: 1.5rem; background: #fff; }
+        .client-item { padding: 10px; cursor: pointer; border-radius: 6px; margin-bottom: 5px; border-bottom: 1px solid #f9f9f9; font-size: 0.85rem; }
         .client-item:hover { background: #f0f7ff; }
         .client-item.selected { background: #007bff; color: white; }
+
         .toggle-row { display: flex; align-items: center; gap: 10px; cursor: pointer; height: 100%; }
         .toggle-row input { width: auto; margin: 0; }
-        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
-        button:hover { background-color: #0056b3; }
-        .status { margin-top: 1rem; text-align: center; font-size: 0.9rem; color: #888; padding: 5px; border-radius: 4px; }
-        .status.online { color: #28a745; background: #e8f5e9; }
-        .manual-link { display: block; text-align: center; margin-top: 15px; color: #007bff; text-decoration: none; font-size: 0.9rem; font-weight: 500; }
+        
+        button { width: 100%; padding: 14px; background-color: #007bff; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: all 0.2s; }
+        button:hover { background-color: #0056b3; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+
+        .status { margin-top: 1.5rem; text-align: center; font-size: 0.9rem; color: #888; padding: 8px; border-radius: 6px; background: #f8f9fa; border: 1px solid #eee; }
+        .status.online { color: #28a745; background: #e8f5e9; border-color: #c8e6c9; }
+        
+        .manual-link { display: block; text-align: center; margin-top: 20px; color: #007bff; text-decoration: none; font-size: 0.9rem; font-weight: 500; }
         .manual-link:hover { text-decoration: underline; }
+
+        /* Mode Visibility */
+        .advanced-only { display: none; }
+        body.mode-advanced .advanced-only { display: block; }
     </style>
 </head>
-<body>
+<body class="mode-simple">
     <div class="card">
-        <div class="lang-switch">
-            <select id="langSelector">
-                <option value="en">English</option>
-                <option value="zh">繁體中文</option>
-            </select>
+        <div class="top-bar">
+            <div class="tabs">
+                <div class="tab active" id="tabSimple" onclick="setMode('simple')">Simple</div>
+                <div class="tab" id="tabAdvanced" onclick="setMode('advanced')">Advanced</div>
+            </div>
+            <div class="lang-switch">
+                <select id="langSelector">
+                    <option value="en">English</option>
+                    <option value="zh">繁體中文</option>
+                </select>
+            </div>
         </div>
 
-        <h2 id="title">Ticker Advanced Control</h2>
+        <h2 id="title">Ticker Control</h2>
         
-        <label id="lblSelectClient">1. Select Target Client</label>
-        <div class="client-list" id="clientList">
-            <!-- Items injected by JS -->
+        <div class="advanced-only">
+            <label id="lblSelectClient">1. Select Target Client</label>
+            <div class="client-list" id="clientList"></div>
         </div>
 
         <div class="control-group">
             <label id="lblMsgText" for="text">Message Text</label>
-            <input type="text" id="text" value="">
+            <input type="text" id="text" placeholder="...">
         </div>
 
         <div class="row">
@@ -61,44 +85,49 @@
             </div>
         </div>
 
-        <div class="row">
-            <div>
-                <label id="lblTextColor">Text Color</label>
-                <input type="color" id="color" value="#ffffff">
+        <div class="advanced-only">
+            <div class="row">
+                <div>
+                    <label id="lblTextColor">Text Color</label>
+                    <input type="color" id="color" value="#ffffff">
+                </div>
+                <div>
+                    <label id="lblBgColor">Background Color</label>
+                    <input type="color" id="bgColor" value="#000000">
+                </div>
             </div>
-            <div>
-                <label id="lblBgColor">Background Color</label>
-                <input type="color" id="bgColor" value="#000000">
+
+            <div class="row">
+                <div>
+                    <label id="lblPosition">Vertical Position</label>
+                    <select id="position">
+                        <option value="top" id="optTop">Top</option>
+                        <option value="middle" id="optMiddle">Middle</option>
+                        <option value="bottom" id="optBottom">Bottom</option>
+                    </select>
+                </div>
+                <div style="display: flex; flex-direction: column; justify-content: flex-end;">
+                    <label class="toggle-row">
+                        <input type="checkbox" id="isTransparent"> <span id="lblTransparent">Transparent BG</span>
+                    </label>
+                </div>
             </div>
         </div>
 
-        <div class="row">
-            <div>
-                <label id="lblPosition">Vertical Position</label>
-                <select id="position">
-                    <option value="top" id="optTop">Top</option>
-                    <option value="middle" id="optMiddle">Middle</option>
-                    <option value="bottom" id="optBottom">Bottom</option>
-                </select>
-            </div>
-            <div style="display: flex; flex-direction: column; justify-content: flex-end;">
-                <label class="toggle-row">
-                    <input type="checkbox" id="isTransparent"> <span id="lblTransparent">Transparent BG</span>
-                </label>
-            </div>
-        </div>
-
-        <button id="sendBtn">Update Selected Client</button>
+        <button id="sendBtn">Update All Tickers</button>
         <div id="status" class="status">Connecting...</div>
         
-        <a href="/manual" target="_blank" class="manual-link" id="linkManual">User Manual (Chinese)</a>
+        <a href="/manual" target="_blank" class="manual-link" id="linkManual">User Manual</a>
     </div>
 
     <script>
         const i18n = {
             en: {
                 pageTitle: "Ticker Control Panel",
-                title: "Ticker Advanced Control",
+                titleSimple: "Simple Ticker Control",
+                titleAdvanced: "Advanced Ticker Control",
+                tabSimple: "Simple",
+                tabAdvanced: "Advanced",
                 lblSelectClient: "1. Select Target Client",
                 optBroadcast: "Broadcast to All Clients",
                 lblMsgText: "Message Text",
@@ -112,7 +141,8 @@
                 optMiddle: "Middle (50%)",
                 optBottom: "Bottom (90%)",
                 lblTransparent: "Transparent BG",
-                sendBtn: "Update Selected Client",
+                sendBtnSimple: "Update All Tickers",
+                sendBtnAdvanced: "Update Selected Client",
                 statusConnecting: "Connecting to Server...",
                 statusConnected: "Connected to Server",
                 linkManual: "User Manual (Chinese)",
@@ -120,7 +150,10 @@
             },
             zh: {
                 pageTitle: "跑馬燈控制面板",
-                title: "跑馬燈進階控制面板",
+                titleSimple: "簡易跑馬燈控制",
+                titleAdvanced: "進階跑馬燈控制",
+                tabSimple: "簡易模式",
+                tabAdvanced: "進階模式",
                 lblSelectClient: "1. 選擇目標客戶端",
                 optBroadcast: "廣播至所有客戶端",
                 lblMsgText: "訊息文字",
@@ -134,7 +167,8 @@
                 optMiddle: "居中 (50%)",
                 optBottom: "底部 (90%)",
                 lblTransparent: "透明背景",
-                sendBtn: "更新所選客戶端",
+                sendBtnSimple: "更新所有跑馬燈",
+                sendBtnAdvanced: "更新所選客戶端",
                 statusConnecting: "正在連接伺服器...",
                 statusConnected: "已連接至伺服器",
                 linkManual: "使用手冊 (繁體中文)",
@@ -154,12 +188,26 @@
         };
         const statusEl = document.getElementById('status');
         const clientListEl = document.getElementById('clientList');
+        const sendBtn = document.getElementById('sendBtn');
         let selectedClientId = 'all';
         let currentClients = [];
+        let currentMode = 'simple';
 
-        // LOAD SETTINGS FROM LOCAL STORAGE
+        function setMode(mode) {
+            currentMode = mode;
+            document.body.className = `mode-${mode}`;
+            document.getElementById('tabSimple').className = `tab ${mode === 'simple' ? 'active' : ''}`;
+            document.getElementById('tabAdvanced').className = `tab ${mode === 'advanced' ? 'active' : ''}`;
+            
+            if (mode === 'simple') selectedClientId = 'all';
+            
+            updateLanguage(controls.lang.value);
+            saveSettings();
+        }
+
         function loadSettings() {
             const saved = JSON.parse(localStorage.getItem('tickerSettings') || '{}');
+            if (saved.mode) setMode(saved.mode);
             if (saved.lang) controls.lang.value = saved.lang;
             if (saved.text !== undefined) controls.text.value = saved.text;
             if (saved.speed) controls.speed.value = saved.speed;
@@ -172,9 +220,9 @@
             updateLanguage(controls.lang.value);
         }
 
-        // SAVE SETTINGS TO LOCAL STORAGE
         function saveSettings() {
             const settings = {
+                mode: currentMode,
                 lang: controls.lang.value,
                 text: controls.text.value,
                 speed: controls.speed.value,
@@ -190,7 +238,9 @@
         function updateLanguage(lang) {
             const t = i18n[lang];
             document.title = t.pageTitle;
-            document.getElementById('title').innerText = t.title;
+            document.getElementById('title').innerText = currentMode === 'simple' ? t.titleSimple : t.titleAdvanced;
+            document.getElementById('tabSimple').innerText = t.tabSimple;
+            document.getElementById('tabAdvanced').innerText = t.tabAdvanced;
             document.getElementById('lblSelectClient').innerText = t.lblSelectClient;
             document.getElementById('lblMsgText').innerText = t.lblMsgText;
             document.getElementById('text').placeholder = t.placeholderText;
@@ -203,7 +253,7 @@
             document.getElementById('optMiddle').innerText = t.optMiddle;
             document.getElementById('optBottom').innerText = t.optBottom;
             document.getElementById('lblTransparent').innerText = t.lblTransparent;
-            document.getElementById('sendBtn').innerText = t.sendBtn;
+            sendBtn.innerText = currentMode === 'simple' ? t.sendBtnSimple : t.sendBtnAdvanced;
             document.getElementById('linkManual').innerText = t.linkManual;
             
             if (ws.readyState === WebSocket.OPEN) {
@@ -212,7 +262,6 @@
                 statusEl.innerText = t.statusConnecting;
             }
             renderClientList();
-            saveSettings();
         }
 
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -248,10 +297,13 @@
             currentClients.forEach(client => {
                 const item = document.createElement('div');
                 item.className = `client-item ${selectedClientId === client.id ? 'selected' : ''}`;
-                item.innerText = `${client.info.ua} (${client.info.width}x${client.info.height})`;
+                // Display IP Address, Screen Size, and User Agent
+                item.innerText = `${client.info.ip} - ${client.info.width}x${client.info.height} (${client.info.ua})`;
                 item.onclick = () => {
-                    selectedClientId = client.id;
-                    renderClientList();
+                    if (currentMode === 'advanced') {
+                        selectedClientId = client.id;
+                        renderClientList();
+                    }
                 };
                 clientListEl.appendChild(item);
             });
@@ -262,12 +314,17 @@
                 const payload = {
                     text: controls.text.value,
                     speed: controls.speed.value,
-                    color: controls.color.value,
-                    bgColor: controls.bgColor.value,
-                    fontSize: controls.fontSize.value,
-                    position: controls.position.value,
-                    isTransparent: controls.isTransparent.checked
+                    fontSize: controls.fontSize.value
                 };
+
+                // Only add extra styles if in advanced mode
+                if (currentMode === 'advanced') {
+                    payload.color = controls.color.value;
+                    payload.bgColor = controls.bgColor.value;
+                    payload.position = controls.position.value;
+                    payload.isTransparent = controls.isTransparent.checked;
+                }
+
                 ws.send(JSON.stringify({
                     type: 'control',
                     targetId: selectedClientId,
@@ -277,14 +334,12 @@
             }
         }
 
-        // Event Listeners
-        controls.lang.onchange = (e) => updateLanguage(e.target.value);
+        controls.lang.onchange = (e) => { updateLanguage(e.target.value); saveSettings(); };
         Object.values(controls).forEach(control => {
             control.addEventListener('input', sendUpdate);
         });
-        document.getElementById('sendBtn').onclick = sendUpdate;
+        sendBtn.onclick = sendUpdate;
 
-        // Init
         loadSettings();
     </script>
 </body>
