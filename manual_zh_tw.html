@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跑馬燈系統進階使用手冊</title>
+    <style>
+        body { font-family: 'Microsoft JhengHei', sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 40px 20px; background: #f4f7f6; }
+        .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        h1 { color: #007bff; border-bottom: 3px solid #007bff; padding-bottom: 10px; text-align: center; }
+        h2 { color: #2c3e50; margin-top: 35px; border-left: 5px solid #007bff; padding-left: 15px; }
+        h3 { color: #16a085; margin-top: 25px; }
+        code { background: #f8f9fa; color: #e83e8c; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; border: 1px solid #ddd; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
+        .feature-card { background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .important { color: #d9534f; font-weight: bold; background: #f9d7d7; padding: 2px 5px; border-radius: 3px; }
+        .success { color: #28a745; font-weight: bold; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 12px; }
+        .status-box { background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 5px solid #28a745; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>跑馬燈進階系統 (Ticker Pro) 使用手冊</h1>
+        
+        <p>本系統是專為數位看板 (Digital Signage)、直播疊加 (OBS/Streaming) 及會議室通知設計的專業級跑馬燈解決方案。支援跨設備同步、離線持久化顯示及全自動連接恢復。</p>
+
+        <h2>1. 核心功能亮點</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>📡 跨設備遠端控制</h3>
+                <p>透過任何手機或電腦的控制面板，即時更新所有連網螢幕的內容。</p>
+            </div>
+            <div class="feature-card">
+                <h3>💾 離線持久化 (Standalone)</h3>
+                <p>顯示端會自動記憶最後接收的內容。即使斷網或伺服器重啟，螢幕仍會持續播放，不會留白。</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎥 直播透明背景</h3>
+                <p>一鍵切換透明背景，可直接作為 OBS 瀏覽器來源 (Browser Source)，完美疊加在影片上。</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎯 精準設備管理</h3>
+                <p>自動識別不同螢幕的解析度與設備類型，支援個別發送訊息或全體廣播。</p>
+            </div>
+        </div>
+
+        <h2>2. 操作指南</h2>
+        
+        <h3>A. 伺服器啟動 (Server)</h3>
+        <ul>
+            <li>確保已安裝 <a href="https://nodejs.org/" target="_blank">Node.js</a>。</li>
+            <li>在專案資料夾執行：<code>node server.js</code></li>
+            <li>預設埠位為 <code>3000</code>。若要修改請編輯 <code>server.js</code> 中的 <code>PORT</code> 常數。</li>
+        </ul>
+
+        <h3>B. 控制面板 (Control Panel)</h3>
+        <ul>
+            <li><strong>位址：</strong> <code>http://[伺服器IP]:3000</code></li>
+            <li><strong>設定記憶：</strong> 面板會自動保存您的配色、語系與偏好，下次開啟時無需重新設定。</li>
+            <li><strong>語系切換：</strong> 右上角可切換 <strong>English</strong> 或 <strong>繁體中文</strong>，面板所有欄位將同步翻譯。</li>
+        </ul>
+
+        <h3>C. 顯示端 (Receiver / Signage)</h3>
+        <ul>
+            <li><strong>位址：</strong> <code>http://[伺服器IP]:3000/display</code></li>
+            <li><strong>狀態燈：</strong> 右下角的小圓點代表連線狀態：<br>
+                <span class="success">● 綠色：</span> 線上同步中。<br>
+                <span class="important">● 紅色：</span> 離線模式（正顯示最後一次存儲的內容，並自動嘗試重連）。
+            </li>
+        </ul>
+
+        <h2>3. 進階參數說明</h2>
+        <ul>
+            <li><strong>捲動速度：</strong> 範圍 2-60 秒。數值越小，文字捲動越快。建議長文本設為 20-30 秒。</li>
+            <li><strong>垂直位置：</strong>
+                <ul>
+                    <li><code>Top</code>: 位於畫面頂端 10% 處。</li>
+                    <li><code>Middle</code>: 畫面中心 (50%)。</li>
+                    <li><code>Bottom</code>: 畫面底端 90% 處。</li>
+                </ul>
+            </li>
+            <li><strong>透明背景：</strong> 勾選後，背景色會完全消失，僅保留文字及陰影，適合疊加層使用。</li>
+        </ul>
+
+        <div class="status-box">
+            <strong>💡 專業建議：</strong> 對於 24/7 運行的展示牆，建議將瀏覽器設為「全螢幕模式」(按下 F11)，並關閉作業系統的自動休眠功能。
+        </div>
+
+        <h2>4. 故障排除 (Troubleshooting)</h2>
+        <ul>
+            <li><strong>連不上伺服器？</strong> 請確認控制設備與顯示設備皆在同一個區域網路 (LAN/Wi-Fi)，並檢查伺服器主機的防火牆是否已開啟 3000 埠。</li>
+            <li><strong>文字重疊或動畫異常？</strong> 本系統採用現代 CSS 動畫，請確保使用最新版的 Chrome、Edge 或 Safari 瀏覽器。</li>
+        </ul>
+
+        <p style="text-align: center; margin-top: 50px; color: #999; font-size: 0.85rem;">
+            &copy; 2026 Ticker Pro System | 數位看板解決方案
+        </p>
+    </div>
+</body>
+</html>

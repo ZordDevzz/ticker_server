@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">Ticker Control Panel</title>
+    <style>
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 600px; position: relative; }
+        h2 { margin-top: 0; color: #333; text-align: center; }
+        .lang-switch { position: absolute; top: 10px; right: 20px; }
+        .lang-switch select { padding: 5px; border-radius: 4px; border: 1px solid #ddd; cursor: pointer; }
+        .control-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.3rem; font-weight: 600; color: #555; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .row { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .row > div { flex: 1; }
+        .client-list { border: 1px solid #eee; padding: 10px; border-radius: 6px; max-height: 120px; overflow-y: auto; margin-bottom: 1rem; background: #fff; }
+        .client-item { padding: 8px 10px; cursor: pointer; border-radius: 4px; margin-bottom: 4px; border-bottom: 1px solid #f9f9f9; font-size: 0.85rem; }
+        .client-item:hover { background: #f0f7ff; }
+        .client-item.selected { background: #007bff; color: white; }
+        .toggle-row { display: flex; align-items: center; gap: 10px; cursor: pointer; height: 100%; }
+        .toggle-row input { width: auto; margin: 0; }
+        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .status { margin-top: 1rem; text-align: center; font-size: 0.9rem; color: #888; padding: 5px; border-radius: 4px; }
+        .status.online { color: #28a745; background: #e8f5e9; }
+        .manual-link { display: block; text-align: center; margin-top: 15px; color: #007bff; text-decoration: none; font-size: 0.9rem; font-weight: 500; }
+        .manual-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="lang-switch">
+            <select id="langSelector">
+                <option value="en">English</option>
+                <option value="zh">繁體中文</option>
+            </select>
+        </div>
+
+        <h2 id="title">Ticker Advanced Control</h2>
+        
+        <label id="lblSelectClient">1. Select Target Client</label>
+        <div class="client-list" id="clientList">
+            <!-- Items injected by JS -->
+        </div>
+
+        <div class="control-group">
+            <label id="lblMsgText" for="text">Message Text</label>
+            <input type="text" id="text" value="">
+        </div>
+
+        <div class="row">
+            <div>
+                <label id="lblSpeed" for="speed">Speed</label>
+                <input type="range" id="speed" min="2" max="60" value="20">
+            </div>
+            <div>
+                <label id="lblFontSize" for="fontSize">Font Size (px)</label>
+                <input type="number" id="fontSize" value="80">
+            </div>
+        </div>
+
+        <div class="row">
+            <div>
+                <label id="lblTextColor">Text Color</label>
+                <input type="color" id="color" value="#ffffff">
+            </div>
+            <div>
+                <label id="lblBgColor">Background Color</label>
+                <input type="color" id="bgColor" value="#000000">
+            </div>
+        </div>
+
+        <div class="row">
+            <div>
+                <label id="lblPosition">Vertical Position</label>
+                <select id="position">
+                    <option value="top" id="optTop">Top</option>
+                    <option value="middle" id="optMiddle">Middle</option>
+                    <option value="bottom" id="optBottom">Bottom</option>
+                </select>
+            </div>
+            <div style="display: flex; flex-direction: column; justify-content: flex-end;">
+                <label class="toggle-row">
+                    <input type="checkbox" id="isTransparent"> <span id="lblTransparent">Transparent BG</span>
+                </label>
+            </div>
+        </div>
+
+        <button id="sendBtn">Update Selected Client</button>
+        <div id="status" class="status">Connecting...</div>
+        
+        <a href="/manual" target="_blank" class="manual-link" id="linkManual">User Manual (Chinese)</a>
+    </div>
+
+    <script>
+        const i18n = {
+            en: {
+                pageTitle: "Ticker Control Panel",
+                title: "Ticker Advanced Control",
+                lblSelectClient: "1. Select Target Client",
+                optBroadcast: "Broadcast to All Clients",
+                lblMsgText: "Message Text",
+                placeholderText: "Enter scrolling message...",
+                lblSpeed: "Speed (Lower = Faster)",
+                lblFontSize: "Font Size (px)",
+                lblTextColor: "Text Color",
+                lblBgColor: "Background Color",
+                lblPosition: "Vertical Position",
+                optTop: "Top (10%)",
+                optMiddle: "Middle (50%)",
+                optBottom: "Bottom (90%)",
+                lblTransparent: "Transparent BG",
+                sendBtn: "Update Selected Client",
+                statusConnecting: "Connecting to Server...",
+                statusConnected: "Connected to Server",
+                linkManual: "User Manual (Chinese)",
+                waiting: "Waiting for clients..."
+            },
+            zh: {
+                pageTitle: "跑馬燈控制面板",
+                title: "跑馬燈進階控制面板",
+                lblSelectClient: "1. 選擇目標客戶端",
+                optBroadcast: "廣播至所有客戶端",
+                lblMsgText: "訊息文字",
+                placeholderText: "輸入捲動訊息...",
+                lblSpeed: "滾動速度 (越低越快)",
+                lblFontSize: "字體大小 (像素)",
+                lblTextColor: "文字顏色",
+                lblBgColor: "背景顏色",
+                lblPosition: "垂直位置",
+                optTop: "頂部 (10%)",
+                optMiddle: "居中 (50%)",
+                optBottom: "底部 (90%)",
+                lblTransparent: "透明背景",
+                sendBtn: "更新所選客戶端",
+                statusConnecting: "正在連接伺服器...",
+                statusConnected: "已連接至伺服器",
+                linkManual: "使用手冊 (繁體中文)",
+                waiting: "正在等待客戶端連接..."
+            }
+        };
+
+        const controls = {
+            lang: document.getElementById('langSelector'),
+            text: document.getElementById('text'),
+            speed: document.getElementById('speed'),
+            color: document.getElementById('color'),
+            bgColor: document.getElementById('bgColor'),
+            fontSize: document.getElementById('fontSize'),
+            position: document.getElementById('position'),
+            isTransparent: document.getElementById('isTransparent')
+        };
+        const statusEl = document.getElementById('status');
+        const clientListEl = document.getElementById('clientList');
+        let selectedClientId = 'all';
+        let currentClients = [];
+
+        // LOAD SETTINGS FROM LOCAL STORAGE
+        function loadSettings() {
+            const saved = JSON.parse(localStorage.getItem('tickerSettings') || '{}');
+            if (saved.lang) controls.lang.value = saved.lang;
+            if (saved.text !== undefined) controls.text.value = saved.text;
+            if (saved.speed) controls.speed.value = saved.speed;
+            if (saved.color) controls.color.value = saved.color;
+            if (saved.bgColor) controls.bgColor.value = saved.bgColor;
+            if (saved.fontSize) controls.fontSize.value = saved.fontSize;
+            if (saved.position) controls.position.value = saved.position;
+            if (saved.isTransparent !== undefined) controls.isTransparent.checked = saved.isTransparent;
+            
+            updateLanguage(controls.lang.value);
+        }
+
+        // SAVE SETTINGS TO LOCAL STORAGE
+        function saveSettings() {
+            const settings = {
+                lang: controls.lang.value,
+                text: controls.text.value,
+                speed: controls.speed.value,
+                color: controls.color.value,
+                bgColor: controls.bgColor.value,
+                fontSize: controls.fontSize.value,
+                position: controls.position.value,
+                isTransparent: controls.isTransparent.checked
+            };
+            localStorage.setItem('tickerSettings', JSON.stringify(settings));
+        }
+
+        function updateLanguage(lang) {
+            const t = i18n[lang];
+            document.title = t.pageTitle;
+            document.getElementById('title').innerText = t.title;
+            document.getElementById('lblSelectClient').innerText = t.lblSelectClient;
+            document.getElementById('lblMsgText').innerText = t.lblMsgText;
+            document.getElementById('text').placeholder = t.placeholderText;
+            document.getElementById('lblSpeed').innerText = t.lblSpeed;
+            document.getElementById('lblFontSize').innerText = t.lblFontSize;
+            document.getElementById('lblTextColor').innerText = t.lblTextColor;
+            document.getElementById('lblBgColor').innerText = t.lblBgColor;
+            document.getElementById('lblPosition').innerText = t.lblPosition;
+            document.getElementById('optTop').innerText = t.optTop;
+            document.getElementById('optMiddle').innerText = t.optMiddle;
+            document.getElementById('optBottom').innerText = t.optBottom;
+            document.getElementById('lblTransparent').innerText = t.lblTransparent;
+            document.getElementById('sendBtn').innerText = t.sendBtn;
+            document.getElementById('linkManual').innerText = t.linkManual;
+            
+            if (ws.readyState === WebSocket.OPEN) {
+                statusEl.innerText = t.statusConnected;
+            } else {
+                statusEl.innerText = t.statusConnecting;
+            }
+            renderClientList();
+            saveSettings();
+        }
+
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${wsProtocol}//${window.location.host}`);
+
+        ws.onopen = () => {
+            statusEl.classList.add('online');
+            updateLanguage(controls.lang.value);
+            sendUpdate();
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'clientList') {
+                currentClients = data.list;
+                renderClientList();
+            }
+        };
+
+        function renderClientList() {
+            const t = i18n[controls.lang.value];
+            clientListEl.innerHTML = `<div class="client-item ${selectedClientId === 'all' ? 'selected' : ''}" data-id="all">${t.optBroadcast}</div>`;
+            
+            if (currentClients.length === 0) {
+                const empty = document.createElement('div');
+                empty.style.padding = "10px";
+                empty.style.color = "#999";
+                empty.style.textAlign = "center";
+                empty.innerText = t.waiting;
+                clientListEl.appendChild(empty);
+            }
+
+            currentClients.forEach(client => {
+                const item = document.createElement('div');
+                item.className = `client-item ${selectedClientId === client.id ? 'selected' : ''}`;
+                item.innerText = `${client.info.ua} (${client.info.width}x${client.info.height})`;
+                item.onclick = () => {
+                    selectedClientId = client.id;
+                    renderClientList();
+                };
+                clientListEl.appendChild(item);
+            });
+        }
+
+        function sendUpdate() {
+            if (ws.readyState === WebSocket.OPEN) {
+                const payload = {
+                    text: controls.text.value,
+                    speed: controls.speed.value,
+                    color: controls.color.value,
+                    bgColor: controls.bgColor.value,
+                    fontSize: controls.fontSize.value,
+                    position: controls.position.value,
+                    isTransparent: controls.isTransparent.checked
+                };
+                ws.send(JSON.stringify({
+                    type: 'control',
+                    targetId: selectedClientId,
+                    payload: payload
+                }));
+                saveSettings();
+            }
+        }
+
+        // Event Listeners
+        controls.lang.onchange = (e) => updateLanguage(e.target.value);
+        Object.values(controls).forEach(control => {
+            control.addEventListener('input', sendUpdate);
+        });
+        document.getElementById('sendBtn').onclick = sendUpdate;
+
+        // Init
+        loadSettings();
+    </script>
+</body>
+</html>

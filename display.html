@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticker Standalone Client</title>
+    <style>
+        :root {
+            --ticker-speed: 20s;
+            --text-color: #ffffff;
+            --bg-color: #000000;
+            --font-size: 80px;
+            --vertical-pos: 50%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', 'Microsoft JhengHei', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            width: 100vw;
+            transition: background-color 0.5s;
+        }
+
+        #ticker-container {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            position: absolute;
+            top: var(--vertical-pos);
+            transform: translateY(-50%);
+        }
+
+        #ticker {
+            display: inline-block;
+            padding-left: 100%;
+            font-size: var(--font-size);
+            color: var(--text-color);
+            font-weight: bold;
+            animation: scroll var(--ticker-speed) linear infinite;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .restarting {
+            animation: none !important;
+        }
+
+        body.transparent {
+            background-color: transparent !important;
+        }
+
+        /* Connection Status Indicator (Discreet) */
+        #status-dot {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4444;
+            opacity: 0.5;
+            transition: background 0.3s;
+            z-index: 1000;
+        }
+        #status-dot.online {
+            background: #00ff00;
+            opacity: 0.2;
+        }
+    </style>
+</head>
+<body>
+    <div id="status-dot"></div>
+    <div id="ticker-container">
+        <div id="ticker">Initializing...</div>
+    </div>
+
+    <script>
+        const ticker = document.getElementById('ticker');
+        const statusDot = document.getElementById('status-dot');
+        let ws;
+        let reconnectTimer;
+
+        // 1. DEFAULT & PERSISTENT SETTINGS
+        const defaultSettings = {
+            text: "Welcome to Signage System",
+            speed: 20,
+            color: "#ffffff",
+            bgColor: "#000000",
+            fontSize: 80,
+            position: "middle",
+            isTransparent: false
+        };
+
+        // 2. APPLY SETTINGS TO UI
+        function applySettings(data) {
+            if (data.text !== undefined) ticker.innerText = data.text;
+            if (data.speed !== undefined) document.documentElement.style.setProperty('--ticker-speed', data.speed + 's');
+            if (data.color !== undefined) document.documentElement.style.setProperty('--text-color', data.color);
+            if (data.bgColor !== undefined) document.documentElement.style.setProperty('--bg-color', data.bgColor);
+            if (data.fontSize !== undefined) document.documentElement.style.setProperty('--font-size', data.fontSize + 'px');
+            
+            if (data.position !== undefined) {
+                let posVal = "50%";
+                if (data.position === "top") posVal = "10%";
+                else if (data.position === "bottom") posVal = "90%";
+                else if (data.position.includes('%')) posVal = data.position;
+                document.documentElement.style.setProperty('--vertical-pos', posVal);
+            }
+
+            if (data.isTransparent) document.body.classList.add('transparent');
+            else document.body.classList.remove('transparent');
+
+            // Restart animation to sync with new content/speed
+            ticker.classList.add('restarting');
+            void ticker.offsetWidth; 
+            ticker.classList.remove('restarting');
+
+            // Save to LocalStorage for offline persistence
+            localStorage.setItem('lastTickerData', JSON.stringify(data));
+        }
+
+        // 3. LOAD LAST SAVED STATE ON STARTUP
+        function init() {
+            const savedData = localStorage.getItem('lastTickerData');
+            if (savedData) {
+                console.log("Loading offline settings...");
+                applySettings(JSON.parse(savedData));
+            } else {
+                applySettings(defaultSettings);
+            }
+            connect();
+        }
+
+        // 4. WEBSOCKET CONNECTION & AUTO-RECONNECT
+        function connect() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            // Use current host if running via server, otherwise fallback to a specific IP if needed
+            const host = window.location.host || '127.0.0.1:3000'; 
+            
+            ws = new WebSocket(`${wsProtocol}//${host}`);
+
+            ws.onopen = () => {
+                console.log('Connected to Server');
+                statusDot.classList.add('online');
+                clearTimeout(reconnectTimer);
+
+                // Register with screen info
+                const info = {
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                    ua: navigator.userAgent.split(') ')[0].split(' (')[1] || 'Signage Client'
+                };
+                ws.send(JSON.stringify({ type: 'register', info }));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'clientList') return;
+                
+                // If it's a control message, apply it
+                applySettings(data);
+            };
+
+            ws.onclose = () => {
+                console.warn('Connection lost. Displaying last saved content.');
+                statusDot.classList.remove('online');
+                // Try to reconnect every 5 seconds
+                reconnectTimer = setTimeout(connect, 5000);
+            };
+
+            ws.onerror = (err) => {
+                ws.close();
+            };
+        }
+
+        // Handle window resize (re-register info)
+        window.onresize = () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ 
+                    type: 'register', 
+                    info: { width: window.innerWidth, height: window.innerHeight, ua: 'Signage Client' } 
+                }));
+            }
+        };
+
+        window.onload = init;
+    </script>
+</body>
+</html>
