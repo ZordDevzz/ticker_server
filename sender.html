@@ -314,16 +314,12 @@
                 const payload = {
                     text: controls.text.value,
                     speed: controls.speed.value,
-                    fontSize: controls.fontSize.value
+                    fontSize: controls.fontSize.value,
+                    color: controls.color.value,
+                    bgColor: controls.bgColor.value,
+                    position: controls.position.value,
+                    isTransparent: controls.isTransparent.checked
                 };
-
-                // Only add extra styles if in advanced mode
-                if (currentMode === 'advanced') {
-                    payload.color = controls.color.value;
-                    payload.bgColor = controls.bgColor.value;
-                    payload.position = controls.position.value;
-                    payload.isTransparent = controls.isTransparent.checked;
-                }
 
                 ws.send(JSON.stringify({
                     type: 'control',
