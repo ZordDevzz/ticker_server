@@ -1,0 +1,36 @@
+const express = require('express');
+const udp = require('dgram');
+const app = express();
+
+
+app.use(express.text());
+
+
+const PLAYER_IP = "192.168.0.81";
+const PLAYER_PORT = 5000;
+
+
+const socket = udp.createSocket("udp4");
+
+
+app.post("/", (req, res) => {
+    const msg = req.body;
+
+    if (!msg) {
+        return res.status(400).send("No message received");
+    }
+
+
+    socket.send(msg, PLAYER_PORT, PLAYER_IP, (err) => {
+        if (err) {
+            console.error("UDP Send Error:", err);
+            res.status(500).send("udp failed");
+        } else {
+            console.log("UDP 已送出 →", msg);  // ★ 只留下這行
+            res.send("ok");
+        }
+    });
+});
+
+// 啟動 HTTP server
+app.listen(3000, () => console.log("Server running at port 3000"));

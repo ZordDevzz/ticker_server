@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>Control Panel</title>
+
+<!-- Add a reliable web font to avoid missing system fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.12/css/weather-icons.min.css"/>
+
+<style>
+/* Layout: full-viewport bar that stretches horizontally */
+html,body{
+	height:100%;
+	margin:0;
+	background:rgba(0,0,0,0);
+	font-family: 'Inter', "Segoe UI", Arial, sans-serif;
+	color:#fff;
+}
+body{
+	display:flex;
+	align-items:center; /* center vertically */
+	justify-content:center;
+	padding:0;
+}
+
+/* 主控制條 - always fill horizontal space */
+.bar{
+	display:flex;
+	align-items:center;
+	gap:20px;
+	padding:12px 16px;
+	width:calc(100% - 48px); /* leave room for outer margin */
+	margin:12px auto; /* small outer margin */
+	box-sizing:border-box;
+	background:rgba(0,0,0,0.25);
+	box-shadow:0 6px 20px rgba(0,0,0,0.35);
+	border-radius:16px; /* rounded corners */
+	overflow:hidden;
+}
+
+/* Allow items to wrap on very small screens */
+.bar-inner{
+	display:flex;
+	align-items:center;
+	gap:20px;
+	width:100%;
+	flex-wrap:wrap;
+	justify-content:space-between;
+}
+
+/* 按鈕: flexible, scale with viewport */
+.btn{
+	flex:1 1 160px; /* grow/shrink, base 160px */
+	min-width:120px;
+	max-width:320px;
+	height:56px;
+	border:0;
+	border-radius:12px;
+	font-size:clamp(16px,2.5vw,22px);
+	color:#fff;
+	cursor:pointer;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	gap:8px;
+	box-shadow:0 6px 15px rgba(0,0,0,0.3);
+	transition:transform .12s ease;
+}
+.btn:active{ transform:scale(.98); }
+.game{ background:#10c45c; }
+.camera{ background:#ff4e4e; }
+
+/* Right side (weather + time) */
+.meta{
+	display:flex;
+	align-items:center;
+	gap:14px;
+	flex:0 0 auto;
+}
+
+.weather{ display:flex; align-items:center; gap:10px; font-size:clamp(14px,2.2vw,20px); white-space:nowrap; }
+.weather i{ font-size:1.25em; }
+.time{ text-align:right; }
+.clock{ font-size:clamp(20px,3.2vw,32px); font-weight:600; }
+.date{ font-size:12px; opacity:.85; letter-spacing:1px; }
+
+/* Responsive tweaks */
+@media (max-width:640px){
+	.bar{ padding:10px; }
+	.btn{ height:48px; min-width:100px; }
+	.meta{ gap:8px; }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="bar">
+	<div class="bar-inner">
+		<div style="display:flex;gap:12px;align-items:center;flex:1 1 auto;">
+			<button class="btn camera" onclick="sendCmd('hide zone')">CAMERA</button>
+			<button class="btn game" onclick="sendCmd('show zone')">GAME</button>
+		</div>
+
+		<div class="meta">
+			<div class="weather">
+				<span id="city">Loading...</span>
+				<i id="weather-icon" class="wi"></i>
+				<span id="temp">--°C</span>
+			</div>
+			<div class="time">
+				<div id="clock" class="clock">--:--</div>
+				<div id="date" class="date">---</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Combined/refactored script -->
+<script>
+// ---------- Helpers ----------
+const SERVER_URL = "http://192.168.0.47:3000"; // base server
+
+async function sendCmd(name){
+	try {
+		const res = await fetch(`${SERVER_URL}/udp`, {
+			method: "POST",
+			headers: { "Content-Type": "text/plain" },
+			body: name
+		});
+		if (!res.ok) console.warn('sendCmd failed', res.status);
+	} catch (err) {
+		console.error('sendCmd error', err);
+	}
+}
+
+// Lightweight fetch with timeout
+async function fetchWithTimeout(resource, options = {}){
+	const { timeout = 3000 } = options;
+	const controller = new AbortController();
+	const id = setTimeout(() => controller.abort(), timeout);
+	try {
+		const res = await fetch(resource, { ...options, signal: controller.signal });
+		return res;
+	} finally {
+		clearTimeout(id);
+	}
+}
+
+// ---------- Weather / Location ----------
+const weatherCodes={
+0:{icon:"wi-day-sunny"},
+1:{icon:"wi-day-sunny-overcast"},
+2:{icon:"wi-day-cloudy"},
+3:{icon:"wi-cloudy"},
+45:{icon:"wi-fog"},
+48:{icon:"wi-fog"},
+51:{icon:"wi-sprinkle"},
+53:{icon:"wi-sprinkle"},
+55:{icon:"wi-sprinkle"},
+61:{icon:"wi-rain"},
+63:{icon:"wi-rain"},
+65:{icon:"wi-rain"},
+71:{icon:"wi-snow"},
+73:{icon:"wi-snow"},
+75:{icon:"wi-snow"},
+80:{icon:"wi-showers"},
+81:{icon:"wi-showers"},
+82:{icon:"wi-showers"},
+95:{icon:"wi-thunderstorm"}
+};
+
+async function fetchWeather(lat,lon,city){
+	try{
+		const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`;
+		const res = await fetchWithTimeout(url, { timeout: 2500 });
+		if (!res || !res.ok) throw new Error('weather fetch failed');
+		const data = await res.json();
+		const code = data.current.weather_code;
+		const temp = data.current.temperature_2m;
+		const icon = weatherCodes[code]?.icon || "wi-na";
+
+		document.getElementById("city").textContent = city;
+		document.getElementById("temp").textContent = Math.round(temp)+"°C";
+		document.getElementById("weather-icon").className = "wi "+icon;
+	}catch(e){
+		console.warn('fetchWeather error', e);
+		document.getElementById("city").textContent = city || 'Unknown';
+		document.getElementById("temp").textContent = '--°C';
+		document.getElementById("weather-icon").className = "wi wi-na";
+	}
+}
+
+async function reverseGeocode(lat,lon){
+	try{
+		const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=16&addressdetails=1`;
+		const res = await fetchWithTimeout(url, { timeout: 2000 });
+		if (!res || !res.ok) throw new Error('geocode failed');
+		const data = await res.json();
+		const a = data.address || {};
+		return (
+			a.suburb || a.village || a.town || a.city || "Unknown"
+		) + " " + (a.city || a.state || "");
+	}catch(e){
+		console.warn('reverseGeocode error', e);
+		return 'Unknown';
+	}
+}
+
+// Get position with a short timeout to avoid long hangs
+function getPosition(options = {}){
+	return new Promise((resolve,reject)=>{
+		if (!navigator.geolocation) return reject(new Error('no-geolocation'));
+		navigator.geolocation.getCurrentPosition(resolve, reject, options);
+	});
+}
+
+async function initWeather(){
+	const fallback = { lat:24.9625, lon:121.207, name:"桃園市" };
+	try{
+		const pos = await getPosition({ timeout:3000, maximumAge:60000 });
+		const lat = pos.coords.latitude;
+		const lon = pos.coords.longitude;
+		const city = await reverseGeocode(lat,lon);
+		await fetchWeather(lat,lon,city);
+	}catch(e){
+		// fallback quickly if geolocation fails or times out
+		fetchWeather(fallback.lat, fallback.lon, fallback.name);
+	}
+}
+
+// ---------- Clock ----------
+function updateClock(){
+	const now = new Date();
+	const h = String(now.getHours()).padStart(2,'0');
+	const m = String(now.getMinutes()).padStart(2,'0');
+	document.getElementById('clock').textContent = `${h}:${m}`;
+	const options = { weekday:'short', month:'short', day:'2-digit' };
+	document.getElementById('date').textContent = now.toLocaleDateString('en-US', options).toUpperCase();
+}
+
+// ---------- Init ----------
+initWeather();
+updateClock();
+setInterval(updateClock, 1000);
+setInterval(initWeather, 10*60*1000);
+</script>
+
+</body>
+</html>
