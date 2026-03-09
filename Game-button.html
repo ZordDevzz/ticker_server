@@ -20,6 +20,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.12/css/weather-ic
 	--bar-padding-vertical:12px;   /* vertical padding inside bar */
 	--bar-padding-horizontal:16px; /* horizontal padding inside bar */
 	--bar-radius:16px;          /* bar corner radius */
+	/* Weather sizing & spacing */
+	--weather-font-size: clamp(14px,2.2vw,20px);
+	--weather-gap: 10px;
+	--weather-icon-size: 1.25em;
+	--weather-city-size: 1em;
+	--weather-temp-size: 0.95em;
 }
 
 /* Layout: full-viewport bar that stretches horizontally */
@@ -99,8 +105,10 @@ body{
 	flex:0 0 auto;
 }
 
-.weather{ display:flex; align-items:center; gap:10px; font-size:clamp(14px,2.2vw,20px); white-space:nowrap; }
-.weather i{ font-size:1.25em; }
+.weather{ display:flex; align-items:center; gap:var(--weather-gap); font-size:var(--weather-font-size); white-space:nowrap; }
+.weather i{ font-size:var(--weather-icon-size); }
+#city{ font-size:var(--weather-city-size); }
+#temp{ font-size:var(--weather-temp-size); margin-left:4px; }
 .time{ text-align:right; }
 .clock{ font-size:clamp(20px,3.2vw,32px); font-weight:600; }
 .date{ font-size:12px; opacity:.85; letter-spacing:1px; }
