@@ -13,6 +13,15 @@
 href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.12/css/weather-icons.min.css"/>
 
 <style>
+/* CSS variables for quick customization */
+:root{
+	--bar-height:56px;           /* height of buttons (and visual bar density) */
+	--btn-gap:12px;             /* gap between left buttons */
+	--bar-padding-vertical:12px;   /* vertical padding inside bar */
+	--bar-padding-horizontal:16px; /* horizontal padding inside bar */
+	--bar-radius:16px;          /* bar corner radius */
+}
+
 /* Layout: full-viewport bar that stretches horizontally */
 html,body{
 	height:100%;
@@ -33,13 +42,13 @@ body{
 	display:flex;
 	align-items:center;
 	gap:20px;
-	padding:12px 16px;
+	padding:var(--bar-padding-vertical) var(--bar-padding-horizontal);
 	width:calc(100% - 48px); /* leave room for outer margin */
 	margin:12px auto; /* small outer margin */
 	box-sizing:border-box;
 	background:rgba(0,0,0,0.25);
 	box-shadow:0 6px 20px rgba(0,0,0,0.35);
-	border-radius:16px; /* rounded corners */
+	border-radius:var(--bar-radius); /* rounded corners */
 	overflow:hidden;
 }
 
@@ -53,12 +62,19 @@ body{
 	justify-content:space-between;
 }
 
+.left-group{
+	display:flex;
+	gap:var(--btn-gap);
+	align-items:center;
+	flex:1 1 auto;
+}
+
 /* 按鈕: flexible, scale with viewport */
 .btn{
 	flex:1 1 160px; /* grow/shrink, base 160px */
 	min-width:120px;
 	max-width:320px;
-	height:56px;
+	height:var(--bar-height);
 	border:0;
 	border-radius:12px;
 	font-size:clamp(16px,2.5vw,22px);
@@ -91,8 +107,8 @@ body{
 
 /* Responsive tweaks */
 @media (max-width:640px){
-	.bar{ padding:10px; }
-	.btn{ height:48px; min-width:100px; }
+	.bar{ padding:8px; }
+	.btn{ height:calc(var(--bar-height) - 8px); min-width:100px; }
 	.meta{ gap:8px; }
 }
 
@@ -101,9 +117,9 @@ body{
 
 <body>
 
-<div class="bar">
+		<div class="bar">
 	<div class="bar-inner">
-		<div style="display:flex;gap:12px;align-items:center;flex:1 1 auto;">
+		<div class="left-group">
 			<button class="btn camera" onclick="sendCmd('hide zone')">CAMERA</button>
 			<button class="btn game" onclick="sendCmd('show zone')">GAME</button>
 		</div>
